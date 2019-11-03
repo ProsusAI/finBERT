@@ -9,6 +9,7 @@ FinBERT is an NLP model to analyze the sentiment of financial text. It is built 
 FinBERT implementation relies on Hugging Face's `pytorch_pretrained_bert` library and their implementation of BERT for sequence classification tasks. `pytorch_pretrained_bert` is an earlier version of the [`transformers`](https://github.com/huggingface/transformers) library. It is on the top of our priority to migrate the code for FinBERT to `transformers` in the near future.
 
 ## Installing
+Before cloning the repository, make sure you have `git-lfs` installed on your environment. The instructions to do so can be found [here](https://help.github.com/en/github/managing-large-files/installing-git-large-file-storage). 
 Install the dependencies by creating the Conda environment `finbert` from the given `environment.yml` file and
  activating it.
 ```bash
