@@ -625,7 +625,7 @@ def predict(text, model, write_to_csv=False, path=None):
                             'sentiment_score':sentiment_score}
             
             batch_result = pd.DataFrame(batch_result)
-            result = pd.concat([batch_result,result])
+            result = pd.concat([result,batch_result])
 
     result['prediction'] = result.prediction.apply(lambda x: label_dict[x])
     if write_to_csv:
