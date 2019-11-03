@@ -599,28 +599,34 @@ def predict(text, model, write_to_csv=False, path=None):
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
     sentences = sent_tokenize(text)
-    examples = [InputExample(str(i), sentence) for i,sentence in enumerate(sentences)]
 
     label_list = ['positive', 'negative', 'neutral']
+    label_dict = {0: 'positive', 1: 'negative', 2: 'neutral'}
+    result = pd.DataFrame(columns=['sentence','logit','prediction','sentiment_score'])
+    for batch in chunks(sentences, 5):
 
-    features = convert_examples_to_features(examples, label_list, 64, tokenizer)
+        examples = [InputExample(str(i), sentence) for i, sentence in enumerate(batch)]
 
-    all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
-    all_input_mask = torch.tensor([f.input_mask for f in features], dtype=torch.long)
-    all_segment_ids = torch.tensor([f.segment_ids for f in features], dtype=torch.long)
+        features = convert_examples_to_features(examples, label_list, 64, tokenizer)
 
-    with torch.no_grad():
-        logits = model(all_input_ids, all_segment_ids, all_input_mask)
-        logits = softmax(np.array(logits))
-        sentiment_score = pd.Series(logits[:,0] - logits[:,1])
-        predictions = np.squeeze(np.argmax(logits, axis=1))
+        all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
+        all_input_mask = torch.tensor([f.input_mask for f in features], dtype=torch.long)
+        all_segment_ids = torch.tensor([f.segment_ids for f in features], dtype=torch.long)
 
-    result = {'sentence': sentences,
-              'logit': list(logits),
-              'prediction': predictions,
-              'sentiment_score':sentiment_score}
-    label_dict = {0:'positive',1:'negative',2:'neutral'}
-    result = pd.DataFrame(result)
+        with torch.no_grad():
+            logits = model(all_input_ids, all_segment_ids, all_input_mask)
+            logits = softmax(np.array(logits))
+            sentiment_score = pd.Series(logits[:,0] - logits[:,1])
+            predictions = np.squeeze(np.argmax(logits, axis=1))
+
+            batch_result = {'sentence': batch,
+                            'logit': list(logits),
+                            'prediction': predictions,
+                            'sentiment_score':sentiment_score}
+            
+            batch_result = pd.DataFrame(batch_result)
+            result = pd.concat([batch_result,result])
+
     result['prediction'] = result.prediction.apply(lambda x: label_dict[x])
     if write_to_csv:
         result.to_csv(path,sep=',', index=False)
