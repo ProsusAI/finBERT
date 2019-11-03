@@ -276,3 +276,17 @@ def get_prediction(text, model, tokenizer):
     model.eval()
     prediction = softmax(model(all_input_ids, all_segment_ids, all_input_mask).detach().numpy())
     return prediction
+
+def chunks(l, n):
+    """
+    Simple utility function to split a list into fixed-length chunks.
+    Parameters
+    ----------
+    l: list
+        given list
+    n: int
+        length of the sequence
+    """
+    for i in range(0, len(l), n):
+        # Create an index range for l of n items:
+        yield l[i:i+n]
