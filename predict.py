@@ -22,6 +22,7 @@ with open(args.text_path,'r') as f:
     text = f.read()
 
 model = BertForSequenceClassification.from_pretrained(args.model_path,num_labels=3,cache_dir=None)
-now = datetime.datetime.now().strftime("predictions_%B-%d-%Y-%I:%M.csv")
-predict(text,model,write_to_csv=True,path=os.path.join(args.output_dir,now))
+#now = datetime.datetime.now().strftime("predictions_%B-%d-%Y-%I:%M.csv")
+output = Path(text_path).stem + '_predictions.csv'
+predict(text,model,write_to_csv=True,path=os.path.join(args.output_dir,output))
 
