@@ -1,6 +1,7 @@
 from finbert.finbert import predict
 from pytorch_pretrained_bert.modeling import BertForSequenceClassification
 import argparse
+from pathlib import Path
 import datetime
 import os
 
