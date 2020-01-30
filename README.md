@@ -1,7 +1,7 @@
 # FinBERT: Financial Sentiment Analysis with BERT
 
-FinBERT is an NLP model to analyze the sentiment of financial text. It is built by further training
- the [BERT](https://arxiv.org/pdf/1810.04805.pdf) language model on a large financial corpus and fine-tuning
+FinBERT is an pre-trained NLP model to analyze the sentiment of financial text. It is built by further training
+ the [BERT](https://arxiv.org/pdf/1810.04805.pdf) language model on the financial domain, using a large financial corpus and thereby fine-tuning
   it for financial sentiment classification. For the details, please see 
   [FinBERT: Financial Sentiment Analysis with Pre-trained Language Models](https://arxiv.org/pdf/1908.10063.pdf).
 
