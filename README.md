@@ -22,9 +22,9 @@ You can download the models from the links below:
 * [Sentiment analysis model trained on Financial PhraseBank](https://prosus-public.s3-eu-west-1.amazonaws.com/finbert/finbert-sentiment/pytorch_model.bin)
 
 For both of these model, the workflow should be like this:
-* Create a directory for the model 
-* Download the model
-* Put it in the same directory as `config.json`
+* Create a directory for the model. For example: `models/sentiment/<model directory name>`
+* Download the model and put it into the directory you just created.
+* Put a copy of `config.json` in this same directory. 
 * Call the model with `.from_pretrained(<model directory name>)`
 
 ## Datasets
