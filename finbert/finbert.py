@@ -3,16 +3,18 @@ from __future__ import absolute_import, division, print_function
 import random
 
 import pandas as pd
-from pytorch_pretrained_bert.tokenization import BertTokenizer
-from torch.nn import MSELoss
+from torch.nn import MSELoss, CrossEntropyLoss
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
-                              TensorDataset)
+    TensorDataset)
 from tqdm import tqdm_notebook as tqdm
 from tqdm import trange
 from nltk.tokenize import sent_tokenize
 from finbert.utils import *
 import numpy as np
 import logging
+
+from transformers.optimization import AdamW, get_linear_schedule_with_warmup
+from transformers import AutoTokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +43,6 @@ class Config(object):
                  gradual_unfreeze=True,
                  encoder_no=12):
         """
-
         Parameters
         ----------
         data_dir: str
@@ -79,7 +80,7 @@ class Config(object):
         output_mode: 'classification' or 'regression'
             Determines whether the task is classification or regression.
         discriminate: bool
-            Determines whether to apply discriminative fine-tuning. 
+            Determines whether to apply discriminative fine-tuning.
         gradual_unfreeze: bool
             Determines whether to gradually unfreeze lower and lower layers as the training goes on.
         encoder_no: int
@@ -101,8 +102,8 @@ class Config(object):
         self.seed = seed
         self.gradient_accumulation_steps = gradient_accumulation_steps
         self.output_mode = output_mode
-        self.fp16 = fp16   
-        self.discriminate = discriminate        
+        self.fp16 = fp16
+        self.discriminate = discriminate
         self.gradual_unfreeze = gradual_unfreeze
         self.encoder_no = encoder_no
 
@@ -120,7 +121,6 @@ class FinBert(object):
         """
         Sets some of the components of the model: Dataset processor, number of labels, usage of gpu and distributed
         training, gradient accumulation steps and tokenizer.
-
         Parameters
         ----------
         label_list: list
@@ -165,12 +165,11 @@ class FinBert(object):
         if not os.path.exists(self.config.model_dir):
             os.makedirs(self.config.model_dir)
 
-
         self.processor = self.processors['finsent']()
         self.num_labels = len(label_list)
         self.label_list = label_list
 
-        self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased", do_lower_case=self.config.do_lower_case)
+        self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased", do_lower_case=self.config.do_lower_case)
 
     def get_data(self, phase):
         """
@@ -181,7 +180,6 @@ class FinBert(object):
         phase: str
             Name of the dataset that will be used in that phase. For example if there is a 'train.csv' in the data
             folder, it should be set to 'train'.
-
         Returns
         -------
         examples: list
@@ -195,12 +193,12 @@ class FinBert(object):
         self.num_train_optimization_steps = int(
             len(
                 examples) / self.config.train_batch_size / self.config.gradient_accumulation_steps) * self.config.num_train_epochs
-        
-        if phase=='train':
-            train = pd.read_csv(os.path.join(self.config.data_dir, 'train.csv'),sep='\t',index_col=False)
+
+        if phase == 'train':
+            train = pd.read_csv(os.path.join(self.config.data_dir, 'train.csv'), sep='\t', index_col=False)
             weights = list()
             labels = self.label_list
-    
+
             class_weights = [train.shape[0] / train[train.label == label].shape[0] for label in labels]
             self.class_weights = torch.tensor(class_weights)
 
@@ -276,30 +274,30 @@ class FinBert(object):
                 {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
             ]
 
-
         schedule = "warmup_linear"
 
 
+        self.num_warmup_steps = int(float(self.num_train_optimization_steps) * self.config.warm_up_proportion)
 
-        self.optimizer = BertAdam(optimizer_grouped_parameters,
-                                  lr=self.config.learning_rate,
-                                  warmup=self.config.warm_up_proportion,
-                                  t_total=self.num_train_optimization_steps,
-                                  schedule=schedule)
+        self.optimizer = AdamW(optimizer_grouped_parameters,
+                          lr=self.config.learning_rate,
+                          correct_bias=False)
+
+        self.scheduler = get_linear_schedule_with_warmup(self.optimizer,
+                                                    num_warmup_steps=self.num_warmup_steps,
+                                                    num_training_steps=self.num_train_optimization_steps)
 
         return model
 
     def get_loader(self, examples, phase):
         """
         Creates a data loader object for a dataset.
-
         Parameters
         ----------
         examples: list
             The list of InputExample's.
         phase: 'train' or 'eval'
             Determines whether to use random sampling or sequential sampling depending on the phase.
-
         Returns
         -------
         dataloader: DataLoader
@@ -359,13 +357,10 @@ class FinBert(object):
         model: BertModel
             The trained model.
         """
-        
-        
+
         validation_examples = self.get_data('validation')
 
         global_step = 0
-
-
 
         self.validation_losses = []
 
@@ -375,7 +370,6 @@ class FinBert(object):
         model.train()
 
         step_number = len(train_dataloader)
-
 
         i = 0
         for _ in trange(int(self.config.num_train_epochs), desc="Epoch"):
@@ -412,11 +406,11 @@ class FinBert(object):
 
                 input_ids, input_mask, segment_ids, label_ids, agree_ids = batch
 
-                logits = model(input_ids, segment_ids, input_mask)
+                logits = model(input_ids, segment_ids, input_mask)[0]
                 weights = self.class_weights.to(self.device)
 
                 if self.config.output_mode == "classification":
-                    loss_fct = CrossEntropyLoss(weight = weights)
+                    loss_fct = CrossEntropyLoss(weight=weights)
                     loss = loss_fct(logits.view(-1, self.num_labels), label_ids.view(-1))
                 elif self.config.output_mode == "regression":
                     loss_fct = MSELoss()
@@ -433,10 +427,12 @@ class FinBert(object):
                 if (step + 1) % self.config.gradient_accumulation_steps == 0:
                     if self.config.fp16:
                         lr_this_step = self.config.learning_rate * warmup_linear(
-                            global_step / self.num_train_optimization_steps, self.config.warmup_proportion)
+                            global_step / self.num_train_optimization_steps, self.config.warm_up_proportion)
                         for param_group in self.optimizer.param_groups:
                             param_group['lr'] = lr_this_step
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                     self.optimizer.step()
+                    self.scheduler.step()
                     self.optimizer.zero_grad()
                     global_step += 1
 
@@ -456,7 +452,7 @@ class FinBert(object):
                 agree_ids = agree_ids.to(self.device)
 
                 with torch.no_grad():
-                    logits = model(input_ids, segment_ids, input_mask)
+                    logits = model(input_ids, segment_ids, input_mask)[0]
 
                     if self.config.output_mode == "classification":
                         loss_fct = CrossEntropyLoss(weight=weights)
@@ -505,7 +501,6 @@ class FinBert(object):
             The model to be evaluated.
         examples: list
             Evaluation data as a list of InputExample's/
-
         Returns
         -------
         evaluation_df: pd.DataFrame
@@ -535,7 +530,7 @@ class FinBert(object):
             agree_ids = agree_ids.to(self.device)
 
             with torch.no_grad():
-                logits = model(input_ids, segment_ids, input_mask)
+                logits = model(input_ids, segment_ids, input_mask)[0]
 
                 if self.config.output_mode == "classification":
                     loss_fct = CrossEntropyLoss()
@@ -584,7 +579,6 @@ def predict(text, model, write_to_csv=False, path=None):
     """
     Predict sentiments of sentences in a given text. The function first tokenizes sentences, make predictions and write
     results.
-
     Parameters
     ----------
     text: string
@@ -596,15 +590,14 @@ def predict(text, model, write_to_csv=False, path=None):
         path to write the string
     """
     model.eval()
-    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+    tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
 
     sentences = sent_tokenize(text)
 
     label_list = ['positive', 'negative', 'neutral']
     label_dict = {0: 'positive', 1: 'negative', 2: 'neutral'}
-    result = pd.DataFrame(columns=['sentence','logit','prediction','sentiment_score'])
+    result = pd.DataFrame(columns=['sentence', 'logit', 'prediction', 'sentiment_score'])
     for batch in chunks(sentences, 5):
-
         examples = [InputExample(str(i), sentence) for i, sentence in enumerate(batch)]
 
         features = convert_examples_to_features(examples, label_list, 64, tokenizer)
@@ -614,21 +607,21 @@ def predict(text, model, write_to_csv=False, path=None):
         all_segment_ids = torch.tensor([f.segment_ids for f in features], dtype=torch.long)
 
         with torch.no_grad():
-            logits = model(all_input_ids, all_segment_ids, all_input_mask)
+            logits = model(all_input_ids, all_segment_ids, all_input_mask)[0]
             logits = softmax(np.array(logits))
-            sentiment_score = pd.Series(logits[:,0] - logits[:,1])
+            sentiment_score = pd.Series(logits[:, 0] - logits[:, 1])
             predictions = np.squeeze(np.argmax(logits, axis=1))
 
             batch_result = {'sentence': batch,
                             'logit': list(logits),
                             'prediction': predictions,
-                            'sentiment_score':sentiment_score}
-            
+                            'sentiment_score': sentiment_score}
+
             batch_result = pd.DataFrame(batch_result)
-            result = pd.concat([result,batch_result], ignore_index=True)
+            result = pd.concat([result, batch_result], ignore_index=True)
 
     result['prediction'] = result.prediction.apply(lambda x: label_dict[x])
     if write_to_csv:
-        result.to_csv(path,sep=',', index=False)
+        result.to_csv(path, sep=',', index=False)
 
     return result
