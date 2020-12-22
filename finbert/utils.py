@@ -6,10 +6,12 @@
 from __future__ import absolute_import, division, print_function
 
 import csv
+import sys
+import os
+import torch
 
 import numpy as np
-from pytorch_pretrained_bert.modeling import *
-from pytorch_pretrained_bert.optimization import *
+import logging
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
@@ -18,6 +20,9 @@ logger = logging.getLogger(__name__)
 
 
 # Classes regarding input and data handling
+
+WEIGHTS_NAME = 'pytorch_model.bin'
+CONFIG_NAME = 'config.json'
 
 class InputExample(object):
     """A single training/test example for simple sequence classification."""
@@ -144,12 +149,12 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
 
         if len(tokens) > max_seq_length - 2:
             tokens = tokens[:(max_seq_length // 4) - 1] + tokens[
-                                                              len(tokens) - (3 * max_seq_length // 4) + 1:]
+                                                          len(tokens) - (3 * max_seq_length // 4) + 1:]
 
         tokens = ["[CLS]"] + tokens + ["[SEP]"]
 
         segment_ids = [0] * len(tokens)
-        
+
         input_ids = tokenizer.convert_tokens_to_ids(tokens)
 
         input_mask = [1] * len(input_ids)
@@ -277,6 +282,7 @@ def get_prediction(text, model, tokenizer):
     prediction = softmax(model(all_input_ids, all_segment_ids, all_input_mask).detach().numpy())
     return prediction
 
+
 def chunks(l, n):
     """
     Simple utility function to split a list into fixed-length chunks.
@@ -289,4 +295,4 @@ def chunks(l, n):
     """
     for i in range(0, len(l), n):
         # Create an index range for l of n items:
-        yield l[i:i+n]
+        yield l[i:i + n]
