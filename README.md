@@ -1,5 +1,7 @@
 # FinBERT: Financial Sentiment Analysis with BERT
 
+FinBERT sentiment analysis model is now available on Hugging Face model hub. You can get the model [here](https://huggingface.co/ProsusAI/finbert). 
+
 FinBERT is a pre-trained NLP model to analyze sentiment of financial text. It is built by further training
  the [BERT](https://arxiv.org/pdf/1810.04805.pdf) language model in the finance domain, using a large financial corpus and thereby fine-tuning
   it for financial sentiment classification. For the details, please see 
@@ -15,7 +17,7 @@ FinBERT implementation relies on Hugging Face's `pytorch_pretrained_bert` librar
 conda env create -f environment.yml
 conda activate finbert
 ```
-s
+
 ## Models
 FinBERT sentiment analysis model is now available on Hugging Face model hub. You can get the model [here](https://huggingface.co/ProsusAI/finbert). 
 
