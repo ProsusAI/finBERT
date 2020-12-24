@@ -41,7 +41,8 @@ class Config(object):
                  output_mode='classification',
                  discriminate=True,
                  gradual_unfreeze=True,
-                 encoder_no=12):
+                 encoder_no=12,
+                 base_model='bert-base-uncased'):
         """
         Parameters
         ----------
@@ -106,6 +107,7 @@ class Config(object):
         self.discriminate = discriminate
         self.gradual_unfreeze = gradual_unfreeze
         self.encoder_no = encoder_no
+        self.base_model = base_model
 
 
 class FinBert(object):
@@ -169,7 +171,7 @@ class FinBert(object):
         self.num_labels = len(label_list)
         self.label_list = label_list
 
-        self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased", do_lower_case=self.config.do_lower_case)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.base_model, do_lower_case=self.config.do_lower_case)
 
     def get_data(self, phase):
         """
@@ -317,8 +319,8 @@ class FinBert(object):
 
         # Load the data, make it into TensorDataset
         all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
-        all_input_mask = torch.tensor([f.input_mask for f in features], dtype=torch.long)
-        all_segment_ids = torch.tensor([f.segment_ids for f in features], dtype=torch.long)
+        all_attention_mask = torch.tensor([f.attention_mask for f in features], dtype=torch.long)
+        all_token_type_ids = torch.tensor([f.token_type_ids for f in features], dtype=torch.long)
 
         if self.config.output_mode == "classification":
             all_label_ids = torch.tensor([f.label_id for f in features], dtype=torch.long)
@@ -330,7 +332,7 @@ class FinBert(object):
         except:
             all_agree_ids = torch.tensor([0.0 for f in features], dtype=torch.long)
 
-        data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids, all_agree_ids)
+        data = TensorDataset(all_input_ids, all_attention_mask, all_token_type_ids, all_label_ids, all_agree_ids)
 
         # Distributed, if necessary
         if phase == 'train':
@@ -404,9 +406,9 @@ class FinBert(object):
 
                 batch = tuple(t.to(self.device) for t in batch)
 
-                input_ids, input_mask, segment_ids, label_ids, agree_ids = batch
+                input_ids, attention_mask, token_type_ids, label_ids, agree_ids = batch
 
-                logits = model(input_ids, segment_ids, input_mask)[0]
+                logits = model(input_ids, attention_mask, token_type_ids)[0]
                 weights = self.class_weights.to(self.device)
 
                 if self.config.output_mode == "classification":
@@ -444,15 +446,15 @@ class FinBert(object):
             valid_loss, valid_accuracy = 0, 0
             nb_valid_steps, nb_valid_examples = 0, 0
 
-            for input_ids, input_mask, segment_ids, label_ids, agree_ids in tqdm(validation_loader, desc="Validating"):
+            for input_ids, attention_mask, token_type_ids, label_ids, agree_ids in tqdm(validation_loader, desc="Validating"):
                 input_ids = input_ids.to(self.device)
-                input_mask = input_mask.to(self.device)
-                segment_ids = segment_ids.to(self.device)
+                attention_mask = attention_mask.to(self.device)
+                token_type_ids = token_type_ids.to(self.device)
                 label_ids = label_ids.to(self.device)
                 agree_ids = agree_ids.to(self.device)
 
                 with torch.no_grad():
-                    logits = model(input_ids, segment_ids, input_mask)[0]
+                    logits = model(input_ids, attention_mask, token_type_ids)[0]
 
                     if self.config.output_mode == "classification":
                         loss_fct = CrossEntropyLoss(weight=weights)
@@ -522,15 +524,15 @@ class FinBert(object):
         agree_levels = []
         text_ids = []
 
-        for input_ids, input_mask, segment_ids, label_ids, agree_ids in tqdm(eval_loader, desc="Testing"):
+        for input_ids, attention_mask, token_type_ids, label_ids, agree_ids in tqdm(eval_loader, desc="Testing"):
             input_ids = input_ids.to(self.device)
-            input_mask = input_mask.to(self.device)
-            segment_ids = segment_ids.to(self.device)
+            attention_mask = attention_mask.to(self.device)
+            token_type_ids = token_type_ids.to(self.device)
             label_ids = label_ids.to(self.device)
             agree_ids = agree_ids.to(self.device)
 
             with torch.no_grad():
-                logits = model(input_ids, segment_ids, input_mask)[0]
+                logits = model(input_ids, attention_mask, token_type_ids)[0]
 
                 if self.config.output_mode == "classification":
                     loss_fct = CrossEntropyLoss()
@@ -558,7 +560,7 @@ class FinBert(object):
                 text_ids.append(input_ids)
 
                 # tmp_eval_loss = loss_fct(logits.view(-1, self.num_labels), label_ids.view(-1))
-                # tmp_eval_loss = model(input_ids, segment_ids, input_mask, label_ids)
+                # tmp_eval_loss = model(input_ids, token_type_ids, attention_mask, label_ids)
 
                 eval_loss += tmp_eval_loss.mean().item()
                 nb_eval_steps += 1
@@ -591,7 +593,6 @@ def predict(text, model, write_to_csv=False, path=None):
     """
     model.eval()
     tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
-
     sentences = sent_tokenize(text)
 
     label_list = ['positive', 'negative', 'neutral']
@@ -603,11 +604,12 @@ def predict(text, model, write_to_csv=False, path=None):
         features = convert_examples_to_features(examples, label_list, 64, tokenizer)
 
         all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
-        all_input_mask = torch.tensor([f.input_mask for f in features], dtype=torch.long)
-        all_segment_ids = torch.tensor([f.segment_ids for f in features], dtype=torch.long)
+        all_attention_mask = torch.tensor([f.attention_mask for f in features], dtype=torch.long)
+        all_token_type_ids = torch.tensor([f.token_type_ids for f in features], dtype=torch.long)
 
         with torch.no_grad():
-            logits = model(all_input_ids, all_segment_ids, all_input_mask)[0]
+            logits = model(all_input_ids, all_attention_mask, all_token_type_ids)[0]
+            logging.info(logits)
             logits = softmax(np.array(logits))
             sentiment_score = pd.Series(logits[:, 0] - logits[:, 1])
             predictions = np.squeeze(np.argmax(logits, axis=1))
