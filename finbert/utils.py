@@ -52,10 +52,10 @@ class InputFeatures(object):
     A single set of features for the data.
     """
 
-    def __init__(self, input_ids, input_mask, segment_ids, label_id, agree=None):
+    def __init__(self, input_ids, attention_mask, token_type_ids, label_id, agree=None):
         self.input_ids = input_ids
-        self.input_mask = input_mask
-        self.segment_ids = segment_ids
+        self.attention_mask = attention_mask
+        self.token_type_ids = token_type_ids
         self.label_id = label_id
         self.agree = agree
 
@@ -153,20 +153,22 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
 
         tokens = ["[CLS]"] + tokens + ["[SEP]"]
 
-        segment_ids = [0] * len(tokens)
+        token_type_ids = [0] * len(tokens)
 
         input_ids = tokenizer.convert_tokens_to_ids(tokens)
 
-        input_mask = [1] * len(input_ids)
+        attention_mask = [1] * len(input_ids)
 
         padding = [0] * (max_seq_length - len(input_ids))
         input_ids += padding
-        input_mask += padding
-        segment_ids += padding
+        attention_mask += padding
+
+
+        token_type_ids += padding
 
         assert len(input_ids) == max_seq_length
-        assert len(input_mask) == max_seq_length
-        assert len(segment_ids) == max_seq_length
+        assert len(attention_mask) == max_seq_length
+        assert len(token_type_ids) == max_seq_length
 
         if mode == 'classification':
             label_id = label_map[example.label]
@@ -188,15 +190,15 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
             logger.info("tokens: %s" % " ".join(
                 [str(x) for x in tokens]))
             logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
-            logger.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
+            logger.info("attention_mask: %s" % " ".join([str(x) for x in attention_mask]))
             logger.info(
-                "segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
+                "token_type_ids: %s" % " ".join([str(x) for x in token_type_ids]))
             logger.info("label: %s (id = %d)" % (example.label, label_id))
 
         features.append(
             InputFeatures(input_ids=input_ids,
-                          input_mask=input_mask,
-                          segment_ids=segment_ids,
+                          attention_mask=attention_mask,
+                          token_type_ids=token_type_ids,
                           label_id=label_id,
                           agree=agree))
     return features
@@ -259,27 +261,27 @@ def get_prediction(text, model, tokenizer):
 
     tokens = tokenizer.tokenize(text)
     tokens = ["[CLS]"] + tokens + ["[SEP]"]
-    segment_ids = [0] * len(tokens)
-    input_mask = [1] * len(tokens)
+    token_type_ids = [0] * len(tokens)
+    attention_mask = [1] * len(tokens)
     input_ids = tokenizer.convert_tokens_to_ids(tokens)
     padding = [0] * (64 - len(input_ids))
     input_ids += padding
-    input_mask += padding
-    segment_ids += padding
+    attention_mask += padding
+    token_type_ids += padding
 
     features = []
     features.append(
         InputFeatures(input_ids=input_ids,
-                      segment_ids=segment_ids,
-                      input_mask=input_mask,
+                      token_type_ids=token_type_ids,
+                      attention_mask=attention_mask,
                       label_id=None))
 
     all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
-    all_input_mask = torch.tensor([f.input_mask for f in features], dtype=torch.long)
-    all_segment_ids = torch.tensor([f.segment_ids for f in features], dtype=torch.long)
+    all_attention_mask = torch.tensor([f.attention_mask for f in features], dtype=torch.long)
+    all_token_type_ids = torch.tensor([f.token_type_ids for f in features], dtype=torch.long)
 
     model.eval()
-    prediction = softmax(model(all_input_ids, all_segment_ids, all_input_mask).detach().numpy())
+    prediction = softmax(model(all_input_ids, all_attention_mask, all_token_type_ids).detach().numpy())
     return prediction
 
 

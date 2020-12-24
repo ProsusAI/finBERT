@@ -15,9 +15,11 @@ FinBERT implementation relies on Hugging Face's `pytorch_pretrained_bert` librar
 conda env create -f environment.yml
 conda activate finbert
 ```
-
+s
 ## Models
-You can download the models from the links below:
+FinBERT sentiment analysis model is now available on Hugging Face model hub. You can get the model [here](https://huggingface.co/ProsusAI/finbert). 
+
+Or, you can download the models from the links below:
 * [Language model trained on TRC2](https://prosus-public.s3-eu-west-1.amazonaws.com/finbert/language-model/pytorch_model.bin)
 * [Sentiment analysis model trained on Financial PhraseBank](https://prosus-public.s3-eu-west-1.amazonaws.com/finbert/finbert-sentiment/pytorch_model.bin)
 
