@@ -81,5 +81,5 @@ Prosus is a global consumer internet group and one of the largest technology inv
 For more information, please visit [www.prosus.com](www.prosus.com).
 
 ## Contact information
-Please contact Dogu Araci `dogu.araci[at]naspers[dot]com` and Zulkuf Genc `zulkuf.genc[at]naspers[dot]com` about
+Please contact Dogu Araci `dogu.araci[at]prosus[dot]com` and Zulkuf Genc `zulkuf.genc[at]prosus[dot]com` about
  any FinBERT related issues and questions.
