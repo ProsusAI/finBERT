@@ -8,6 +8,7 @@ import sys
 from finbert.finbert import predict
 from pytorch_pretrained_bert.modeling import BertForSequenceClassification
 import nltk
+import os
 
 nltk.download('punkt')
 app = Flask(__name__)
