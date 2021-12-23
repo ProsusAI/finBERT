@@ -577,7 +577,7 @@ class FinBert(object):
         return evaluation_df
 
 
-def predict(text, model, write_to_csv=False, path=None):
+def predict(text, model, write_to_csv=False, path=None, use_gpu=False, gpu_name='cuda:0'):
     """
     Predict sentiments of sentences in a given text. The function first tokenizes sentences, make predictions and write
     results.
@@ -590,11 +590,17 @@ def predict(text, model, write_to_csv=False, path=None):
     write_to_csv (optional): bool
     path (optional): string
         path to write the string
+    use_gpu: (optional): bool 
+        enables inference on GPU
+    gpu_name: (optiona): string
+        multi-gpu support: allows specifying which gpu to use
     """
     model.eval()
     tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
     sentences = sent_tokenize(text)
 
+    device = gpu_name if use_gpu and torch.cuda.is_available() else "cpu"
+    logging.info("Using device: %s " % device)
     label_list = ['positive', 'negative', 'neutral']
     label_dict = {0: 'positive', 1: 'negative', 2: 'neutral'}
     result = pd.DataFrame(columns=['sentence', 'logit', 'prediction', 'sentiment_score'])
@@ -603,14 +609,16 @@ def predict(text, model, write_to_csv=False, path=None):
 
         features = convert_examples_to_features(examples, label_list, 64, tokenizer)
 
-        all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
-        all_attention_mask = torch.tensor([f.attention_mask for f in features], dtype=torch.long)
-        all_token_type_ids = torch.tensor([f.token_type_ids for f in features], dtype=torch.long)
+        all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long).to(device)
+        all_attention_mask = torch.tensor([f.attention_mask for f in features], dtype=torch.long).to(device)
+        all_token_type_ids = torch.tensor([f.token_type_ids for f in features], dtype=torch.long).to(device)
 
         with torch.no_grad():
+            model     = model.to(device)
+
             logits = model(all_input_ids, all_attention_mask, all_token_type_ids)[0]
             logging.info(logits)
-            logits = softmax(np.array(logits))
+            logits = softmax(np.array(logits.cpu()))
             sentiment_score = pd.Series(logits[:, 0] - logits[:, 1])
             predictions = np.squeeze(np.argmax(logits, axis=1))
 
