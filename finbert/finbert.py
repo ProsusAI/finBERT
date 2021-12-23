@@ -592,7 +592,7 @@ def predict(text, model, write_to_csv=False, path=None, use_gpu=False, gpu_name=
         path to write the string
     use_gpu: (optional): bool 
         enables inference on GPU
-    gpu_name: (optiona): string
+    gpu_name: (optional): string
         multi-gpu support: allows specifying which gpu to use
     """
     model.eval()
