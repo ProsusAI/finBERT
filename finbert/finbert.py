@@ -18,6 +18,7 @@ from transformers import AutoTokenizer
 
 logger = logging.getLogger(__name__)
 
+tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
 
 class Config(object):
     """The configuration class for training."""
@@ -577,7 +578,7 @@ class FinBert(object):
         return evaluation_df
 
 
-def predict(text, model, write_to_csv=False, path=None, use_gpu=False, gpu_name='cuda:0'):
+def predict(text, model, write_to_csv=False, path=None, use_gpu=False, gpu_name='cuda:0', batch_size=5):
     """
     Predict sentiments of sentences in a given text. The function first tokenizes sentences, make predictions and write
     results.
@@ -594,9 +595,11 @@ def predict(text, model, write_to_csv=False, path=None, use_gpu=False, gpu_name=
         enables inference on GPU
     gpu_name: (optional): string
         multi-gpu support: allows specifying which gpu to use
+    batch_size: (optional): int
+        size of batching chunks
     """
     model.eval()
-    tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+
     sentences = sent_tokenize(text)
 
     device = gpu_name if use_gpu and torch.cuda.is_available() else "cpu"
@@ -604,7 +607,7 @@ def predict(text, model, write_to_csv=False, path=None, use_gpu=False, gpu_name=
     label_list = ['positive', 'negative', 'neutral']
     label_dict = {0: 'positive', 1: 'negative', 2: 'neutral'}
     result = pd.DataFrame(columns=['sentence', 'logit', 'prediction', 'sentiment_score'])
-    for batch in chunks(sentences, 5):
+    for batch in chunks(sentences, batch_size):
         examples = [InputExample(str(i), sentence) for i, sentence in enumerate(batch)]
 
         features = convert_examples_to_features(examples, label_list, 64, tokenizer)
