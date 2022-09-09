@@ -1,6 +1,12 @@
 # FinBERT: Financial Sentiment Analysis with BERT
 
-FinBERT sentiment analysis model is now available on Hugging Face model hub. You can get the model [here](https://huggingface.co/ProsusAI/finbert). 
+<p align="center">
+<a href="https://console.tiyaro.ai/explore?q=finbert&pub=ProsusAI"> <img src="https://tiyaro-public-docs.s3.us-west-2.amazonaws.com/assets/try_on_tiyaro_badge.svg"></a>
+</p>
+
+FinBERT sentiment analysis model is now available on the following hubs:
+- [HuggingFace](https://huggingface.co/ProsusAI/finbert) 
+- [Tiyaro.ai](https://console.tiyaro.ai/explore/ProsusAI-finbert/api)
 
 FinBERT is a pre-trained NLP model to analyze sentiment of financial text. It is built by further training
  the [BERT](https://arxiv.org/pdf/1810.04805.pdf) language model in the finance domain, using a large financial corpus and thereby fine-tuning
