@@ -1,5 +1,38 @@
 # FinBERT: Financial Sentiment Analysis with BERT
 
+---
+## ⚠️ **IMPORTANT LICENSING NOTICE**
+
+**Effective Date**: 12 October 2026
+
+### **What the Apache-2.0 License Covers**
+The Apache-2.0 license in this repository applies **ONLY to the training 
+code, scripts, and notebooks** contained in this repository. 
+
+**The Apache-2.0 license does NOT cover**:
+- The **pre-trained model weights** (hosted on Hugging Face)
+- The **training dataset** (Financial PhraseBank)
+
+### **Licensor**
+The code in this repository is licensed by **MIH AI B.V.** under the 
+Apache License, Version 2.0.
+
+### **Model Weights**
+The pre-trained FinBERT model weights are available on Hugging Face. 
+Please review the **[model card on Hugging Face](https://huggingface.co/ProsusAI/finbert)** 
+for licensing terms and restrictions that apply to the model weights.
+
+### **Training Data**
+This model was trained using the Financial PhraseBank dataset, which has 
+its own licensing terms. Users are solely responsible for ensuring 
+compliance with any third-party data licenses.
+
+### **No Warranty**
+This project is provided "AS IS" without warranty of any kind. This is 
+not an official Prosus product.
+
+---
+
 FinBERT sentiment analysis model is now available on Hugging Face model hub. You can get the model [here](https://huggingface.co/ProsusAI/finbert). 
 
 FinBERT is a pre-trained NLP model to analyze sentiment of financial text. It is built by further training
@@ -19,15 +52,19 @@ conda activate finbert
 ```
 
 ## Models
-FinBERT sentiment analysis model is now available on Hugging Face model hub. You can get the model [here](https://huggingface.co/ProsusAI/finbert). 
 
-Or, you can download the models from the links below:
-* [Language model trained on TRC2](https://prosus-public.s3-eu-west-1.amazonaws.com/finbert/language-model/pytorch_model.bin)
-* [Sentiment analysis model trained on Financial PhraseBank](https://prosus-public.s3-eu-west-1.amazonaws.com/finbert/finbert-sentiment/pytorch_model.bin)
+### Pre-trained Model Weights
 
-For both of these model, the workflow should be like this:
+Pre-trained FinBERT model weights are available on Hugging Face:
+
+**🔗 [https://huggingface.co/ProsusAI/finbert](https://huggingface.co/ProsusAI/finbert)**
+
+Please review the model card for licensing terms and usage restrictions 
+before downloading or using the model weights.
+
+To use the model with the code in this repository, the workflow should be like this:
 * Create a directory for the model. For example: `models/sentiment/<model directory name>`
-* Download the model and put it into the directory you just created.
+* Download the model files from Hugging Face and put them into the directory you just created.
 * Put a copy of `config.json` in this same directory. 
 * Call the model with `.from_pretrained(<model directory name>)`
 
