@@ -6,14 +6,15 @@ import pandas as pd
 from torch.nn import MSELoss, CrossEntropyLoss
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
     TensorDataset)
-from tqdm import tqdm_notebook as tqdm
+from tqdm.auto import tqdm
 from tqdm import trange
 from nltk.tokenize import sent_tokenize
 from finbert.utils import *
 import numpy as np
 import logging
 
-from transformers.optimization import AdamW, get_linear_schedule_with_warmup
+from torch.optim import AdamW
+from transformers.optimization import get_linear_schedule_with_warmup
 from transformers import AutoTokenizer
 
 logger = logging.getLogger(__name__)
@@ -283,8 +284,7 @@ class FinBert(object):
         self.num_warmup_steps = int(float(self.num_train_optimization_steps) * self.config.warm_up_proportion)
 
         self.optimizer = AdamW(optimizer_grouped_parameters,
-                          lr=self.config.learning_rate,
-                          correct_bias=False)
+                          lr=self.config.learning_rate)
 
         self.scheduler = get_linear_schedule_with_warmup(self.optimizer,
                                                     num_warmup_steps=self.num_warmup_steps,

@@ -1,7 +1,13 @@
-from finbert.finbert import predict
-from transformers import AutoModelForSequenceClassification
 import argparse
 import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+
+from finbert.finbert import predict
+from transformers import AutoModelForSequenceClassification
+import nltk
+
+nltk.download('punkt_tab', quiet=True)
 
 
 parser = argparse.ArgumentParser(description='Sentiment analyzer')
@@ -10,7 +16,8 @@ parser.add_argument('-a', action="store_true", default=False)
 
 parser.add_argument('--text_path', type=str, help='Path to the text file.')
 parser.add_argument('--output_dir', type=str, help='Where to write the results')
-parser.add_argument('--model_path', type=str, help='Path to classifier model')
+parser.add_argument('--model_path', type=str, default='ProsusAI/finbert',
+                    help='Path to classifier model or Hugging Face model id')
 
 args = parser.parse_args()
 

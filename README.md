@@ -1,14 +1,44 @@
 # FinBERT: Financial Sentiment Analysis with BERT
 
+---
+## ⚠️ **IMPORTANT LICENSING NOTICE**
+
+**Effective Date**: 12 October 2026
+
+### **What the Apache-2.0 License Covers**
+The Apache-2.0 license in this repository applies **ONLY to the training 
+code, scripts, and notebooks** contained in this repository. 
+
+**The Apache-2.0 license does NOT cover**:
+- The **pre-trained model weights** (hosted on Hugging Face)
+- The **training dataset** (Financial PhraseBank)
+
+### **Licensor**
+The code in this repository is licensed by **MIH AI B.V.** under the 
+Apache License, Version 2.0.
+
+### **Model Weights**
+The pre-trained FinBERT model weights are available on Hugging Face. 
+Please review the **[model card on Hugging Face](https://huggingface.co/ProsusAI/finbert)** 
+for licensing terms and restrictions that apply to the model weights.
+
+### **Training Data**
+This model was trained using the Financial PhraseBank dataset, which has 
+its own licensing terms. Users are solely responsible for ensuring 
+compliance with any third-party data licenses.
+
+### **No Warranty**
+This project is provided "AS IS" without warranty of any kind. This is 
+not an official Prosus product.
+
+---
+
 FinBERT sentiment analysis model is now available on Hugging Face model hub. You can get the model [here](https://huggingface.co/ProsusAI/finbert). 
 
 FinBERT is a pre-trained NLP model to analyze sentiment of financial text. It is built by further training
  the [BERT](https://arxiv.org/pdf/1810.04805.pdf) language model in the finance domain, using a large financial corpus and thereby fine-tuning
   it for financial sentiment classification. For the details, please see 
   [FinBERT: Financial Sentiment Analysis with Pre-trained Language Models](https://arxiv.org/pdf/1908.10063.pdf).
-
-**Important Note:** 
-FinBERT implementation relies on Hugging Face's `pytorch_pretrained_bert` library and their implementation of BERT for sequence classification tasks. `pytorch_pretrained_bert` is an earlier version of the [`transformers`](https://github.com/huggingface/transformers) library. It is on the top of our priority to migrate the code for FinBERT to `transformers` in the near future.
 
 ## Installing
  Install the dependencies by creating the Conda environment `finbert` from the given `environment.yml` file and
@@ -19,17 +49,22 @@ conda activate finbert
 ```
 
 ## Models
-FinBERT sentiment analysis model is now available on Hugging Face model hub. You can get the model [here](https://huggingface.co/ProsusAI/finbert). 
 
-Or, you can download the models from the links below:
-* [Language model trained on TRC2](https://prosus-public.s3-eu-west-1.amazonaws.com/finbert/language-model/pytorch_model.bin)
-* [Sentiment analysis model trained on Financial PhraseBank](https://prosus-public.s3-eu-west-1.amazonaws.com/finbert/finbert-sentiment/pytorch_model.bin)
+### Pre-trained Model Weights
 
-For both of these model, the workflow should be like this:
-* Create a directory for the model. For example: `models/sentiment/<model directory name>`
-* Download the model and put it into the directory you just created.
-* Put a copy of `config.json` in this same directory. 
-* Call the model with `.from_pretrained(<model directory name>)`
+Pre-trained FinBERT model weights are available on Hugging Face:
+
+**🔗 [https://huggingface.co/ProsusAI/finbert](https://huggingface.co/ProsusAI/finbert)**
+
+Please review the model card for licensing terms and usage restrictions 
+before downloading or using the model weights.
+
+The code in this repository loads the model directly from Hugging Face by its id:
+```python
+from transformers import AutoModelForSequenceClassification
+model = AutoModelForSequenceClassification.from_pretrained('ProsusAI/finbert')
+```
+To use a model you trained yourself, pass its local directory instead of `'ProsusAI/finbert'`.
 
 ## Datasets
 There are two datasets used for FinBERT. The language model further training is done on a subset of Reuters TRC2 
@@ -47,7 +82,8 @@ To create these files, do the following steps:
 ```python scripts/datasets.py --data_path <path to Sentences_50Agree.txt>```
 
 ## Training the model
-Training is done in `finbert_training.ipynb` notebook. The trained model will
+Training is done in `finbert_training.ipynb` notebook. Training starts from `bert-base-uncased` by default; you can
+ set `bm` in the notebook to your own further pre-trained language model instead. The trained model will
  be saved to `models/classifier_model/finbert-sentiment`. You can find the training parameters in the notebook as follows:
 ```python
 config = Config(   data_dir=cl_data_path,
@@ -71,8 +107,11 @@ We provide a script to quickly get sentiment predictions using FinBERT. Given a 
 
 Here's an example with the provided example text: `test.txt`. From the command line, simply run:
 ```bash
-python predict.py --text_path test.txt --output_dir output/ --model_path models/classifier_model/finbert-sentiment
+python scripts/predict.py --text_path test.txt --output_dir output/
 ```
+By default this uses the `ProsusAI/finbert` model from Hugging Face. To use your own trained model, add
+`--model_path models/classifier_model/finbert-sentiment`.
+
 ## Disclaimer
 This is not an official Prosus product. It is the outcome of an intern research project in Prosus AI team.
 ### About Prosus 
