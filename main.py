@@ -6,15 +6,15 @@ import time
 from flask import request
 import sys
 from finbert.finbert import predict
-from pytorch_pretrained_bert.modeling import BertForSequenceClassification
+from transformers import AutoModelForSequenceClassification
 import nltk
 import os
 
-nltk.download('punkt')
+nltk.download('punkt_tab')
 app = Flask(__name__)
 CORS(app)
 start = int(round(time.time()))
-model = BertForSequenceClassification.from_pretrained('/src/models/classifier_model/finbert-sentiment', num_labels=3, cache_dir=None)
+model = AutoModelForSequenceClassification.from_pretrained(os.environ.get('MODEL_PATH', 'ProsusAI/finbert'), num_labels=3, cache_dir=None)
 
 @app.route("/",methods=['POST'])
 def score():
