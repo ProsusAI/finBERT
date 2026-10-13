@@ -1,0 +1,25 @@
+FinBERT
+Copyright © 2026 MIH AI B.V.
+
+This product includes software developed at MIH AI B.V.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Third-party attributions
+------------------------
+
+This project incorporates and/or depends on third-party open source software.
+Portions of the data-processing code in finbert/utils.py are adapted from
+Hugging Face's `transformers` library (Apache-2.0).
+
+Dependencies and their licenses (from environment.yml / Dockerfile):
+  - transformers, pytorch_pretrained_bert, nltk  — Apache-2.0
+  - pandas, numpy, scikit-learn, torch, joblib, jupyter, ipykernel, Flask  — BSD-3-Clause
+  - spacy, textblob, flask-cors  — MIT
+  - tqdm  — MPL-2.0 / MIT
+
+All third-party components are distributed under permissive licenses.
+Refer to each project's distribution for the full text of its license.
